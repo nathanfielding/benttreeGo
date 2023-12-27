@@ -29,11 +29,11 @@ func (c ApartmentHandler) ApartmentList(w http.ResponseWriter, r *http.Request) 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		w.WriteHeader(http.StatusOK)
+		// w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(apartments)
 	case http.MethodPost:
 		var apartment models.Apartment
-		w.WriteHeader(http.StatusCreated)
+		// w.WriteHeader(http.StatusCreated)
 		json.NewDecoder(r.Body).Decode(&apartment)
 		err := c.CreateApartment(&apartment)
 		if err != nil {
@@ -54,7 +54,7 @@ func (c ApartmentHandler) ApartmentByNumber(w http.ResponseWriter, r *http.Reque
 	// TODO: Implment http.MethodPatch
 	switch r.Method {
 	case http.MethodGet:
-		w.WriteHeader(http.StatusOK)
+		// w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(apartment)
 	case http.MethodPut:
 		json.NewDecoder(r.Body).Decode(apartment)
@@ -62,7 +62,7 @@ func (c ApartmentHandler) ApartmentByNumber(w http.ResponseWriter, r *http.Reque
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		w.WriteHeader(http.StatusOK)
+		// w.WriteHeader(http.StatusOK)
 	case http.MethodDelete:
 		err := c.DeleteApartment(apartment)
 		if err != nil {

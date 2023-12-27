@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"benttreeGo/pkg/handlers"
 
@@ -20,6 +21,18 @@ func main() {
 		panic(err)
 	}
 	defer db.Close()
+
+	file, err := os.Open("schema.sql")
+	if err != nil {
+		panic(err)
+	}
+	schema := make([]byte, 1024)
+	file.Read(schema)
+
+	_, err = db.Exec(string(schema))
+	if err != nil {
+		panic(err)
+	}
 
 	r := mux.NewRouter()
 	apartmentHandler := handlers.NewApartmentHandler(db)
