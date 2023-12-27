@@ -19,3 +19,7 @@
 
 # Go workspace file
 go.work
+
+# Dockerfile
+Dockerfile
+docker-compose.yml
