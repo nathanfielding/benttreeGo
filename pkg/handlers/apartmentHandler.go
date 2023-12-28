@@ -29,11 +29,9 @@ func (c ApartmentHandler) ApartmentList(w http.ResponseWriter, r *http.Request) 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		// w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(apartments)
 	case http.MethodPost:
 		var apartment models.Apartment
-		// w.WriteHeader(http.StatusCreated)
 		json.NewDecoder(r.Body).Decode(&apartment)
 		err := c.CreateApartment(&apartment)
 		if err != nil {
@@ -54,7 +52,6 @@ func (c ApartmentHandler) ApartmentByNumber(w http.ResponseWriter, r *http.Reque
 	// TODO: Implment http.MethodPatch
 	switch r.Method {
 	case http.MethodGet:
-		// w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(apartment)
 	case http.MethodPut:
 		json.NewDecoder(r.Body).Decode(apartment)
@@ -62,7 +59,6 @@ func (c ApartmentHandler) ApartmentByNumber(w http.ResponseWriter, r *http.Reque
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		// w.WriteHeader(http.StatusOK)
 	case http.MethodDelete:
 		err := c.DeleteApartment(apartment)
 		if err != nil {
@@ -77,7 +73,7 @@ func (c ApartmentHandler) ApartmentByNumber(w http.ResponseWriter, r *http.Reque
 /* -------------------- APARTMENT HELPER FUNCTIONS -------------------- */
 func (c *ApartmentHandler) FindAllApartments() ([]models.Apartment, error) {
 	var apartments []models.Apartment
-	query := "SELECT * FROM apartments"
+	query := "SELECT * FROM Apartments"
 	err := c.db.Select(&apartments, query)
 	if err != nil {
 		return nil, err
@@ -87,7 +83,7 @@ func (c *ApartmentHandler) FindAllApartments() ([]models.Apartment, error) {
 
 func (c *ApartmentHandler) FindApartmentByNumber(number string) (*models.Apartment, error) {
 	var apartment models.Apartment
-	query := "SELECT *  FROM apartments WHERE id = ?"
+	query := "SELECT * FROM Apartments WHERE number = $1"
 	err := c.db.Get(&apartment, query, number)
 	if err != nil {
 		return nil, err
@@ -96,7 +92,7 @@ func (c *ApartmentHandler) FindApartmentByNumber(number string) (*models.Apartme
 }
 
 func (c *ApartmentHandler) CreateApartment(a *models.Apartment) error {
-	query := "INSERT INTO apartments (number, property, bedrooms, occupancy, rented_as) VALUES (?, ?, ?, ?, ?)"
+	query := "INSERT INTO Apartments (number, property, bedrooms, occupancy, rented_as) VALUES ($1, $2, $3, $4, $5)"
 	_, err := c.db.Exec(query, a.Number, a.Property, a.Bedrooms, a.Occupancy, a.RentedAs)
 	if err != nil {
 		return err
@@ -105,7 +101,7 @@ func (c *ApartmentHandler) CreateApartment(a *models.Apartment) error {
 }
 
 func (c *ApartmentHandler) UpdateApartment(a *models.Apartment) error {
-	query := "UPDATE apartments SET number = ?, property = ?, bedrooms = ?, occupancy = ?, rented_as = ? WHERE number = ?"
+	query := "UPDATE Apartments SET number = $1, property = $2, bedrooms = $3, occupancy = $4, rented_as = $5 WHERE number = $1"
 	_, err := c.db.Exec(query, a.Number, a.Property, a.Bedrooms, a.Occupancy, a.RentedAs, a.Number)
 	if err != nil {
 		return err
@@ -114,8 +110,8 @@ func (c *ApartmentHandler) UpdateApartment(a *models.Apartment) error {
 }
 
 func (c *ApartmentHandler) DeleteApartment(a *models.Apartment) error {
-	query := "DELETE FROM apartments WHERE number = ?"
-	err := c.db.QueryRow(query, a.Number).Scan()
+	query := "DELETE FROM Apartments WHERE number = $1"
+	_, err := c.db.Exec(query, a.Number)
 	if err != nil {
 		return err
 	}
@@ -124,7 +120,7 @@ func (c *ApartmentHandler) DeleteApartment(a *models.Apartment) error {
 
 func (c *ApartmentHandler) FindAparmentByBedrooms(bedrooms uint) ([]models.Apartment, error) {
 	var apartments []models.Apartment
-	query := "SELECT * FROM apartments WHERE bedrooms = ?"
+	query := "SELECT * FROM Apartments WHERE bedrooms = $1"
 	err := c.db.Select(&apartments, query)
 	if err != nil {
 		return nil, err

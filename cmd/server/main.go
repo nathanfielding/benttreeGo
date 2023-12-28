@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,17 +23,15 @@ func main() {
 	}
 	defer db.Close()
 
-	file, err := os.Open("schema.sql")
-	if err != nil {
-		panic(err)
-	}
-	schema := make([]byte, 1024)
-	file.Read(schema)
+	schemaPath := flag.String("path", "/benttreeGo.schema.sql", "Path to schema file")
+	flag.Parse()
 
-	_, err = db.Exec(string(schema))
+	schema, err := os.ReadFile(*schemaPath)
 	if err != nil {
 		panic(err)
 	}
+
+	db.MustExec(string(schema))
 
 	r := mux.NewRouter()
 	apartmentHandler := handlers.NewApartmentHandler(db)

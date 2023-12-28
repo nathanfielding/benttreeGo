@@ -1,15 +1,15 @@
 package models
 
 type Apartment struct {
-	ID        uint64
-	Number    uint
-	Property  string
-	Bedrooms  uint
-	Occupancy uint
-	RentedAs  uint
+	ID        uint64 `json:"id" db:"id"`
+	Number    string `json:"number" db:"number"`
+	Property  string `json:"property" db:"property"`
+	Bedrooms  uint   `json:"bedrooms" db:"bedrooms"`
+	Occupancy uint   `json:"occupancy" db:"occupancy"`
+	RentedAs  uint   `json:"rented_as" db:"rented_as"`
 }
 
-func NewApartment(number uint, property string, bedrooms, occupancy, rentedAs uint) *Apartment {
+func NewApartment(number, property string, bedrooms, occupancy, rentedAs uint) *Apartment {
 	return &Apartment{
 		Number:    number,
 		Property:  property,
