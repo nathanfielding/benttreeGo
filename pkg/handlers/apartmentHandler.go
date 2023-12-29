@@ -102,7 +102,7 @@ func (c *ApartmentHandler) CreateApartment(a *models.Apartment) error {
 
 func (c *ApartmentHandler) UpdateApartment(a *models.Apartment) error {
 	query := "UPDATE Apartments SET number = $1, property = $2, bedrooms = $3, occupancy = $4, rented_as = $5 WHERE number = $1"
-	_, err := c.db.Exec(query, a.Number, a.Property, a.Bedrooms, a.Occupancy, a.RentedAs, a.Number)
+	_, err := c.db.Exec(query, a.Number, a.Property, a.Bedrooms, a.Occupancy, a.RentedAs)
 	if err != nil {
 		return err
 	}

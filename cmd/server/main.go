@@ -23,7 +23,7 @@ func main() {
 	}
 	defer db.Close()
 
-	schemaPath := flag.String("path", "/benttreeGo.schema.sql", "Path to schema file")
+	schemaPath := flag.String("path", "/benttreeGo.schema.sql", "Path to schema file") // need to figure out why Dockerfile CMD doesn't work
 	flag.Parse()
 
 	schema, err := os.ReadFile(*schemaPath)
