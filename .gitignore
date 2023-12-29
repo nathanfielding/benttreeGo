@@ -23,3 +23,5 @@ go.work
 # Dockerfile
 Dockerfile
 docker-compose.yml
+
+/.vscode

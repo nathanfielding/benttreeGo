@@ -8,13 +8,3 @@ type Apartment struct {
 	Occupancy uint   `json:"occupancy" db:"occupancy"`
 	RentedAs  uint   `json:"rented_as" db:"rented_as"`
 }
-
-func NewApartment(number, property string, bedrooms, occupancy, rentedAs uint) *Apartment {
-	return &Apartment{
-		Number:    number,
-		Property:  property,
-		Bedrooms:  bedrooms,
-		Occupancy: occupancy,
-		RentedAs:  rentedAs,
-	}
-}

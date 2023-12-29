@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"benttreeGo/pkg/handlers"
+	"benttreeGo/pkg/services"
 
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
@@ -15,16 +16,18 @@ import (
 )
 
 func main() {
-	fmt.Println("Starting server...")
-	postresqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", "postgres", 5432, "benttree_user", "benttree_password", "benttree_db")
+	schemaPath := flag.String("path", "/benttreeGo.schema.sql", "Path to schema file") // need to figure out why Dockerfile CMD doesn't work
+	dbHost := flag.String("host", "postgres", "System to run database on")
+	dbPort := flag.Int("port", 5432, "Port to open database connection on")
+	flag.Parse()
+
+	postresqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", *dbHost, *dbPort, "benttree_user", "benttree_password", "benttree_db")
+
 	db, err := sqlx.Open("postgres", postresqlInfo)
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
-
-	schemaPath := flag.String("path", "/benttreeGo.schema.sql", "Path to schema file") // need to figure out why Dockerfile CMD doesn't work
-	flag.Parse()
 
 	schema, err := os.ReadFile(*schemaPath)
 	if err != nil {
@@ -34,10 +37,15 @@ func main() {
 	db.MustExec(string(schema))
 
 	r := mux.NewRouter()
-	apartmentHandler := handlers.NewApartmentHandler(db)
+	dbService := services.NewDatabaseService(db)
+
+	apartmentHandler := handlers.NewApartmentHandler(dbService)
+	tenantHandler := handlers.NewTenantHandler(dbService)
 
 	r.HandleFunc("/apartments/", apartmentHandler.ApartmentList)
-	r.HandleFunc("/apartments/{number}", apartmentHandler.ApartmentByNumber)
+	r.HandleFunc("/apartments/number/{number}", apartmentHandler.ApartmentByNumber)
+
+	r.HandleFunc("/tenants/", tenantHandler.TenantList)
 
 	log.Fatal(http.ListenAndServe(":8080", r))
 }

@@ -2,128 +2,84 @@ package handlers
 
 import (
 	"benttreeGo/pkg/models"
+	"benttreeGo/pkg/services"
 	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/jmoiron/sqlx"
 )
 
 type ApartmentHandler struct {
-	db *sqlx.DB
+	s *services.DatabaseService
 }
 
-func NewApartmentHandler(db *sqlx.DB) *ApartmentHandler {
-	return &ApartmentHandler{db: db}
+func NewApartmentHandler(s *services.DatabaseService) *ApartmentHandler {
+	return &ApartmentHandler{s: s}
 }
 
-func (c ApartmentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h ApartmentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// TODO: Maybe implement to encapsulate all apartment handlers
 }
 
 /* -------------------- APARTMENT HANDLER FUNCTIONS -------------------- */
-func (c ApartmentHandler) ApartmentList(w http.ResponseWriter, r *http.Request) {
+func (h ApartmentHandler) ApartmentList(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		apartments, err := c.FindAllApartments()
+		apartments, err := h.s.FindAllApartments()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		json.NewEncoder(w).Encode(apartments)
 	case http.MethodPost:
 		var apartment models.Apartment
-		json.NewDecoder(r.Body).Decode(&apartment)
-		err := c.CreateApartment(&apartment)
+		if err := json.NewDecoder(r.Body).Decode(&apartment); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		err := h.s.CreateApartment(apartment)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func (c ApartmentHandler) ApartmentByNumber(w http.ResponseWriter, r *http.Request) {
+func (h ApartmentHandler) ApartmentByNumber(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	number := vars["number"]
-	apartment, err := c.FindApartmentByNumber(number)
+	apartment, err := h.s.FindApartmentByNumber(number)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	// TODO: Implment http.MethodPatch
 	switch r.Method {
 	case http.MethodGet:
-		json.NewEncoder(w).Encode(apartment)
+		if err := json.NewEncoder(w).Encode(apartment); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	case http.MethodPut:
-		json.NewDecoder(r.Body).Decode(apartment)
-		err := c.UpdateApartment(apartment)
+		if err := json.NewDecoder(r.Body).Decode(apartment); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		err := h.s.UpdateApartment(apartment)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	case http.MethodDelete:
-		err := c.DeleteApartment(apartment)
+		err := h.s.DeleteApartment(apartment)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	default:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 
-}
-
-/* -------------------- APARTMENT HELPER FUNCTIONS -------------------- */
-func (c *ApartmentHandler) FindAllApartments() ([]models.Apartment, error) {
-	var apartments []models.Apartment
-	query := "SELECT * FROM Apartments"
-	err := c.db.Select(&apartments, query)
-	if err != nil {
-		return nil, err
-	}
-	return apartments, nil
-}
-
-func (c *ApartmentHandler) FindApartmentByNumber(number string) (*models.Apartment, error) {
-	var apartment models.Apartment
-	query := "SELECT * FROM Apartments WHERE number = $1"
-	err := c.db.Get(&apartment, query, number)
-	if err != nil {
-		return nil, err
-	}
-	return &apartment, nil
-}
-
-func (c *ApartmentHandler) CreateApartment(a *models.Apartment) error {
-	query := "INSERT INTO Apartments (number, property, bedrooms, occupancy, rented_as) VALUES ($1, $2, $3, $4, $5)"
-	_, err := c.db.Exec(query, a.Number, a.Property, a.Bedrooms, a.Occupancy, a.RentedAs)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *ApartmentHandler) UpdateApartment(a *models.Apartment) error {
-	query := "UPDATE Apartments SET number = $1, property = $2, bedrooms = $3, occupancy = $4, rented_as = $5 WHERE number = $1"
-	_, err := c.db.Exec(query, a.Number, a.Property, a.Bedrooms, a.Occupancy, a.RentedAs)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *ApartmentHandler) DeleteApartment(a *models.Apartment) error {
-	query := "DELETE FROM Apartments WHERE number = $1"
-	_, err := c.db.Exec(query, a.Number)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *ApartmentHandler) FindAparmentByBedrooms(bedrooms uint) ([]models.Apartment, error) {
-	var apartments []models.Apartment
-	query := "SELECT * FROM Apartments WHERE bedrooms = $1"
-	err := c.db.Select(&apartments, query)
-	if err != nil {
-		return nil, err
-	}
-	return apartments, nil
 }
