@@ -16,8 +16,8 @@ import (
 )
 
 func main() {
-	schemaPath := flag.String("path", "/benttreeGo.schema.sql", "Path to schema file") // need to figure out why Dockerfile CMD doesn't work
-	dbHost := flag.String("host", "postgres", "System to run database on")
+	schemaPath := flag.String("path", "/benttreeGo.schema.sql", "Path to schema file")
+	dbHost := flag.String("host", "localhost", "System to run database on")
 	dbPort := flag.Int("port", 5432, "Port to open database connection on")
 	flag.Parse()
 

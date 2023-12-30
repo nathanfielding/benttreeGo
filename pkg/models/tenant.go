@@ -1,5 +1,7 @@
 package models
 
+// https://medium.com/aubergine-solutions/how-i-handled-null-possible-values-from-database-rows-in-golang-521fb0ee267
+
 type Tenant struct {
 	ID              uint64 `json:"id" db:"id"`
 	ApartmentID     uint64 `json:"apartment_id" db:"apartment_id"`
