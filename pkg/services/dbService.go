@@ -95,7 +95,7 @@ func (s DatabaseService) FindAllTenants() ([]models.Tenant, error) {
 }
 
 func (s DatabaseService) FindTenantByName(name string) (*models.Tenant, error) {
-	var tenant *models.Tenant
+	var tenant models.Tenant
 	query := `SELECT Tenants.*, Apartments.number AS ApartmentNumber FROM Tenants
 				JOIN Apartments ON Tenants.apartment_id = Apartments.id
 				WHERE name = $1`
@@ -103,7 +103,7 @@ func (s DatabaseService) FindTenantByName(name string) (*models.Tenant, error) {
 	if err != nil {
 		return nil, err
 	}
-	return tenant, nil
+	return &tenant, nil
 }
 
 func (s DatabaseService) FindTenantsByApartmentNumber(number string) ([]models.Tenant, error) {
@@ -121,9 +121,9 @@ func (s DatabaseService) CreateTenant(t *models.Tenant) error {
 	if err != nil {
 		return err
 	}
-	query := `INSERT INTO Tenants (apartment_id, name, email, phone_number, home_address, is_renewing)
-				VALUES ($1, $2, $3, $4, $5, $6)` // eventually maybe add lease_id
-	_, err = s.db.Exec(query, apartmentID, t.Name, t.Email, t.PhoneNumber, t.HomeAddress, t.IsRenewing)
+	query := `INSERT INTO Tenants (apartment_id, lease_id, name, email, phone_number, home_address, is_renewing)
+				VALUES ($1, $2, $3, $4, $5, $6, $7)` // eventually maybe add lease_id
+	_, err = s.db.Exec(query, apartmentID, nil, t.Name, t.Email, t.PhoneNumber, t.HomeAddress, t.IsRenewing)
 	if err != nil {
 		return err
 	}

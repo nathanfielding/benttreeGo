@@ -49,8 +49,7 @@ func (h ApartmentHandler) ApartmentList(w http.ResponseWriter, r *http.Request) 
 
 func (h ApartmentHandler) ApartmentByNumber(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	number := vars["number"]
-	apartment, err := h.s.FindApartmentByNumber(number)
+	apartment, err := h.s.FindApartmentByNumber(vars["number"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

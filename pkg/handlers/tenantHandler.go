@@ -5,6 +5,8 @@ import (
 	"benttreeGo/pkg/services"
 	"encoding/json"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 type TenantHandler struct {
@@ -38,6 +40,31 @@ func (h TenantHandler) TenantList(w http.ResponseWriter, r *http.Request) {
 		}
 		err := h.s.CreateTenant(&tenant)
 		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (h TenantHandler) TenantByName(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	tenant, err := h.s.FindTenantByName(vars["name"])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		if err := json.NewEncoder(w).Encode(tenant); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	case http.MethodPut:
+		// TODO: implement
+	case http.MethodDelete:
+		if err := h.s.DeleteTenant(tenant); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

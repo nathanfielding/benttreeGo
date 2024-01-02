@@ -46,6 +46,7 @@ func main() {
 	r.HandleFunc("/apartments/number/{number}", apartmentHandler.ApartmentByNumber)
 
 	r.HandleFunc("/tenants/", tenantHandler.TenantList)
+	r.HandleFunc("/tenants/name/{name}", tenantHandler.TenantByName)
 
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
