@@ -71,6 +71,15 @@ func (h ApartmentHandler) ApartmentByNumber(w http.ResponseWriter, r *http.Reque
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+	case http.MethodPatch:
+		updates := make(map[string]interface{})
+		if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		for k, v := range updates {
+			h.s.PatchApartment(vars["number"], k, v)
+		}
 	case http.MethodDelete:
 		err := h.s.DeleteApartment(apartment)
 		if err != nil {

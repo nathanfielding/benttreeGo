@@ -2,6 +2,7 @@ package services
 
 import (
 	"benttreeGo/pkg/models"
+	"fmt"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -35,8 +36,8 @@ func (s *DatabaseService) FindApartmentByNumber(number string) (*models.Apartmen
 	return &apartment, nil
 }
 
-func (s *DatabaseService) FindApartmentIDByNumber(number string) (uint64, error) {
-	var id uint64
+func (s *DatabaseService) FindApartmentIDByNumber(number string) (uint, error) {
+	var id uint
 	query := "SELECT id from Apartments WHERE number = $1"
 	if err := s.db.Get(&id, query, number); err != nil {
 		return 0, err
@@ -67,6 +68,18 @@ func (s *DatabaseService) CreateApartment(a models.Apartment) error {
 func (s *DatabaseService) UpdateApartment(a *models.Apartment) error {
 	query := "UPDATE Apartments SET number = $1, property = $2, bedrooms = $3, occupancy = $4, rented_as = $5 WHERE number = $1"
 	_, err := s.db.Exec(query, a.Number, a.Property, a.Bedrooms, a.Occupancy, a.RentedAs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s DatabaseService) PatchApartment(number, field string, rawValue interface{}) error {
+	if !models.ValidApartmentField(field) {
+		return fmt.Errorf("invalid apartment field name")
+	}
+	query := fmt.Sprintf("UPDATE Apartments SET %s = $1 WHERE number = $2", field)
+	_, err := s.db.Exec(query, rawValue, number)
 	if err != nil {
 		return err
 	}
@@ -129,6 +142,8 @@ func (s DatabaseService) CreateTenant(t *models.Tenant) error {
 	}
 	return nil
 }
+
+// Eventually add methods for PUT and PATCH
 
 func (s DatabaseService) DeleteTenant(t *models.Tenant) error {
 	query := "DELETE FROM Tenants WHERE name = $1"
