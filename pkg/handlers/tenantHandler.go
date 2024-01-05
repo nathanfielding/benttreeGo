@@ -10,10 +10,10 @@ import (
 )
 
 type TenantHandler struct {
-	s *services.DatabaseService
+	s services.DatabaseService
 }
 
-func NewTenantHandler(s *services.DatabaseService) *TenantHandler {
+func NewTenantHandler(s services.DatabaseService) *TenantHandler {
 	return &TenantHandler{s: s}
 }
 
@@ -28,9 +28,11 @@ func (h TenantHandler) TenantList(w http.ResponseWriter, r *http.Request) {
 		tenants, err := h.s.FindAllTenants()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		if err = json.NewEncoder(w).Encode(tenants); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	case http.MethodPost:
 		var tenant models.Tenant
@@ -62,7 +64,19 @@ func (h TenantHandler) TenantByName(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case http.MethodPut:
-		// TODO: implement
+		if err := h.s.PutTenant(*tenant); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	case http.MethodPatch:
+		updates := make(map[string]interface{})
+		if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		for k, v := range updates {
+			h.s.PatchTenant(vars["name"], k, v)
+		}
 	case http.MethodDelete:
 		if err := h.s.DeleteTenant(tenant); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

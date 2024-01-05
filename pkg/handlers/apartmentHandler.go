@@ -10,10 +10,10 @@ import (
 )
 
 type ApartmentHandler struct {
-	s *services.DatabaseService
+	s services.DatabaseService
 }
 
-func NewApartmentHandler(s *services.DatabaseService) *ApartmentHandler {
+func NewApartmentHandler(s services.DatabaseService) *ApartmentHandler {
 	return &ApartmentHandler{s: s}
 }
 
@@ -54,7 +54,6 @@ func (h ApartmentHandler) ApartmentByNumber(w http.ResponseWriter, r *http.Reque
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// TODO: Implment http.MethodPatch
 	switch r.Method {
 	case http.MethodGet:
 		if err := json.NewEncoder(w).Encode(apartment); err != nil {
@@ -66,7 +65,7 @@ func (h ApartmentHandler) ApartmentByNumber(w http.ResponseWriter, r *http.Reque
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		err := h.s.UpdateApartment(apartment)
+		err := h.s.PutApartment(apartment)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -78,7 +77,10 @@ func (h ApartmentHandler) ApartmentByNumber(w http.ResponseWriter, r *http.Reque
 			return
 		}
 		for k, v := range updates {
-			h.s.PatchApartment(vars["number"], k, v)
+			if err := h.s.PatchApartment(vars["number"], k, v); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 	case http.MethodDelete:
 		err := h.s.DeleteApartment(apartment)

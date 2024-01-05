@@ -9,14 +9,6 @@ type Apartment struct {
 	RentedAs  uint   `json:"rented_as" db:"rented_as"`
 }
 
-func ValidApartmentField(field string) bool {
-	switch field {
-	case "number":
-	case "property":
-	case "bedrooms":
-	case "occupancy":
-	case "rented_as":
-		return true
-	}
-	return false
+func IsValidApartmentField(field string) bool {
+	return (field == "id" || field == "number" || field == "property" || field == "bedrooms" || field == "occupancy" || field == "rented_as")
 }
