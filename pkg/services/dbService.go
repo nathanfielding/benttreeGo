@@ -3,6 +3,7 @@ package services
 import (
 	"benttreeGo/pkg/models"
 	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -110,7 +111,6 @@ func (s DatabaseService) CreateTenant(t *models.Tenant) error {
 	return nil
 }
 
-// Eventually add methods for PUT and PATCH
 func (s DatabaseService) PutTenant(t models.Tenant) error {
 	apartmentID, err := s.FindApartmentIDByNumber(t.ApartmentNumber)
 	if err != nil {
@@ -129,6 +129,15 @@ func (s DatabaseService) PatchTenant(name, field string, rawValue interface{}) e
 	if !models.IsValidTenantField(field) {
 		return fmt.Errorf("invalid updatable tenant field name")
 	}
+	// case where field is ApartmentNumber (not stored in db)
+	if field == "apartment_number" {
+		apartmentID, err := s.FindApartmentIDByNumber(rawValue.(string))
+		if err != nil {
+			return err
+		}
+		rawValue = apartmentID
+	}
+
 	query := fmt.Sprintf("UPDATE Tenants SET %s = $1 WHERE name = $2", field)
 	_, err := s.db.Exec(query, rawValue, name)
 	if err != nil {
@@ -171,7 +180,8 @@ func (s DatabaseService) FindTenantByName(name string) (*models.Tenant, error) {
 
 func (s DatabaseService) FindTenantsByApartmentNumber(number string) ([]models.Tenant, error) {
 	var tenants []models.Tenant
-	query := "SELECT * FROM Tenants JOIN Apartments ON Tenants.apartment_id = Apartments.id WHERE Apartments.number = $1"
+	query := `SELECT Tenants.*, Apartments.number AS ApartmentNumber FROM Tenants 
+				JOIN Apartments ON Tenants.apartment_id = Apartments.id WHERE Apartments.number = $1`
 	err := s.db.Select(tenants, query, number)
 	if err != nil {
 		return nil, err
@@ -194,21 +204,101 @@ func (s DatabaseService) CreateLease(l models.Lease) error {
 	if err != nil {
 		return nil
 	}
-	query := `INSERT INTO Leases (tenant_id, start_date, end_date, monthly_rent, deposit_rent)
+	startDate := l.StartDate.Format("2000-01-01")
+	endDate := l.EndDate.Format("2000-01-01")
+
+	query := `INSERT INTO Leases (tenant_id, start_date, end_date, monthly_rent, deposit_amount)
 				VALUES ($1, $2, $3, $4, $5)`
+
+	_, err = s.db.Exec(query, tenantID, startDate, endDate, l.MonthlyRent, l.DepositAmount)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s DatabaseService) PutLease(l models.Lease) error {
+	tenantID, err := s.FindTenantIDByName(l.TenantName)
+	if err != nil {
+		return err
+	}
+	query := `"UPDATE Leases SET tenant_id = $1, start_date = $2, end_date = $3,
+				monthly_rent = $4, deposit_amount = $5`
 	_, err = s.db.Exec(query, tenantID, l.StartDate, l.EndDate, l.MonthlyRent, l.DepositAmount)
 	if err != nil {
 		return err
 	}
 	return nil
-
 }
+
+func (s DatabaseService) PatchLease(name, field string, rawValue interface{}) error {
+	if !models.IsValidLeaseField(field) {
+		return fmt.Errorf("invalid updatable lease field name")
+	}
+	tenantID, err := s.FindTenantIDByName(name)
+	if err != nil {
+		return err
+	}
+	// case where field is TenantName (not stored in db)
+	if field == "tenant_name" {
+		rawValue = tenantID
+	}
+
+	query := fmt.Sprintf("UPDATE Leases SET %s = $1 WHERE tenant_id = $2", field)
+	if _, err := s.db.Exec(query, rawValue, tenantID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s DatabaseService) DeleteLease(l models.Lease) error {
+	query := "DELETE FROM Leases WHERE tenant_id = $1"
+	if _, err := s.db.Exec(query, l.TenantID); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s DatabaseService) FindAllLeases() ([]models.Lease, error) {
 	var leases []models.Lease
-	query := `SELECT Leases.*, Tenant.name AS TenantName FROM Leases
-				JOIN Tenants ON Leases.tenant_id = Tenant.id`
-	if err := s.db.Select(leases, query); err != nil {
+	query := `SELECT Leases.*, Tenants.name AS TenantName FROM Leases
+				JOIN Tenants ON Leases.tenant_id = Tenants.id`
+	if err := s.db.Select(&leases, query); err != nil {
 		return nil, err
 	}
 	return leases, nil
+}
+
+func (s DatabaseService) FindLeaseByName(name string) (models.Lease, error) {
+	var lease models.Lease
+	tenantID, err := s.FindTenantIDByName(name)
+	if err != nil {
+		return models.Lease{}, err
+	}
+	query := `SELECT Leases.*, Tenants.name AS TenantName FROM Leases
+				JOIN Tenants ON Leases.tenant_id = Tenants.id WHERE Leases.tenant_id = $1`
+	err = s.db.Get(&lease, query, tenantID)
+	if err != nil {
+		return models.Lease{}, err
+	}
+	return lease, nil
+}
+
+/* -------------------- MISCELLANEOUS HELPER FUNCTIONS -------------------- */
+func (s DatabaseService) FindApartmentsByEndDate(endDate time.Time) ([]models.Apartment, error) {
+	var apartmentIDs []uint
+	query := `SELECT Tenant.apartment_id FROM Tenant JOIN Leases
+				ON Leases.tenant_id = Tenant.id WHERE Leases.end_date <= $1
+				AND Tenant.is_renwing = FALSE`
+	err := s.db.Select(apartmentIDs, query, endDate)
+	if err != nil {
+		return nil, err
+	}
+	var apartments []models.Apartment
+	query = "SELECT * FROM Apartments WHERE id = ANY ($1)"
+	err = s.db.Select(apartments, query, apartmentIDs)
+	if err != nil {
+		return nil, err
+	}
+	return apartments, nil
 }

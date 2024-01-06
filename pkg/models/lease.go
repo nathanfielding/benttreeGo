@@ -1,7 +1,6 @@
 package models
 
 import (
-	"math/big"
 	"time"
 )
 
@@ -11,8 +10,8 @@ type Lease struct {
 	TenantName    string    `json:"tenant_name"`
 	StartDate     time.Time `json:"start_date" db:"start_date"`
 	EndDate       time.Time `json:"end_date" db:"end_date"`
-	MonthlyRent   big.Float `json:"monthly_rent" db:"monthly_rent"`
-	DepositAmount big.Float `json:"deposit_amount" db:"deposit_amount"`
+	MonthlyRent   float32   `json:"monthly_rent" db:"monthly_rent"`     // may need to change data type
+	DepositAmount float32   `json:"deposit_amount" db:"deposit_amount"` // may need to change data type
 }
 
 func IsValidLeaseField(field string) bool {

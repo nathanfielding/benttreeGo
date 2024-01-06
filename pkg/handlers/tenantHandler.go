@@ -75,7 +75,10 @@ func (h TenantHandler) TenantByName(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for k, v := range updates {
-			h.s.PatchTenant(vars["name"], k, v)
+			if err := h.s.PatchTenant(vars["name"], k, v); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 	case http.MethodDelete:
 		if err := h.s.DeleteTenant(tenant); err != nil {
@@ -84,5 +87,25 @@ func (h TenantHandler) TenantByName(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// eventually maybe add PUT and PATCH methods
+func (h TenantHandler) TenantsByApartmentNumber(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	tenants, err := h.s.FindTenantsByApartmentNumber(vars["apartment_number"])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		if err := json.NewEncoder(w).Encode(tenants); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 }

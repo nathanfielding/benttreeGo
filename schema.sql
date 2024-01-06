@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS Tenants (
 
 CREATE TABLE IF NOT EXISTS Leases (
     id SERIAL PRIMARY KEY,
-    apartment_id INT NOT NULL REFERENCES Apartments(id) ON DELETE RESTRICT,
+    -- apartment_id INT NOT NULL REFERENCES Apartments(id) ON DELETE RESTRICT,
     tenant_id INT UNIQUE,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,

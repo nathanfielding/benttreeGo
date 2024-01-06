@@ -41,12 +41,17 @@ func main() {
 
 	apartmentHandler := handlers.NewApartmentHandler(dbService)
 	tenantHandler := handlers.NewTenantHandler(dbService)
+	leaseHandler := handlers.NewLeaseHandler(dbService)
 
 	r.HandleFunc("/apartments/", apartmentHandler.ApartmentList)
 	r.HandleFunc("/apartments/number/{number}", apartmentHandler.ApartmentByNumber)
 
 	r.HandleFunc("/tenants/", tenantHandler.TenantList)
 	r.HandleFunc("/tenants/name/{name}", tenantHandler.TenantByName)
+	r.HandleFunc("/tenants/number/{number}", tenantHandler.TenantsByApartmentNumber)
+
+	r.HandleFunc("/leases/", leaseHandler.LeaseList)
+	r.HandleFunc("/leases/name/{name}", leaseHandler.LeaseByName)
 
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
