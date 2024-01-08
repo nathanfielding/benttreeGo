@@ -182,7 +182,7 @@ func (s DatabaseService) FindTenantsByApartmentNumber(number string) ([]models.T
 	var tenants []models.Tenant
 	query := `SELECT Tenants.*, Apartments.number AS ApartmentNumber FROM Tenants 
 				JOIN Apartments ON Tenants.apartment_id = Apartments.id WHERE Apartments.number = $1`
-	err := s.db.Select(tenants, query, number)
+	err := s.db.Select(&tenants, query, number)
 	if err != nil {
 		return nil, err
 	}
@@ -204,13 +204,18 @@ func (s DatabaseService) CreateLease(l models.Lease) error {
 	if err != nil {
 		return nil
 	}
-	startDate := l.StartDate.Format("2000-01-01")
-	endDate := l.EndDate.Format("2000-01-01")
+	apartmentID, err := s.FindApartmentIDByNumber(l.ApartmentNumber)
+	if err != nil {
+		return nil
+	}
+	// to ensure compatibility with Postgres DATE type
+	startDate := l.StartDate.Format("2006-01-02")
+	endDate := l.EndDate.Format("2006-01-02")
 
-	query := `INSERT INTO Leases (tenant_id, start_date, end_date, monthly_rent, deposit_amount)
-				VALUES ($1, $2, $3, $4, $5)`
+	query := `INSERT INTO Leases (tenant_id, apartment_id, start_date, end_date, monthly_rent, deposit_amount)
+				VALUES ($1, $2, $3, $4, $5, $6)`
 
-	_, err = s.db.Exec(query, tenantID, startDate, endDate, l.MonthlyRent, l.DepositAmount)
+	_, err = s.db.Exec(query, tenantID, apartmentID, startDate, endDate, l.MonthlyRent, l.DepositAmount)
 	if err != nil {
 		return err
 	}
@@ -222,9 +227,17 @@ func (s DatabaseService) PutLease(l models.Lease) error {
 	if err != nil {
 		return err
 	}
-	query := `"UPDATE Leases SET tenant_id = $1, start_date = $2, end_date = $3,
-				monthly_rent = $4, deposit_amount = $5`
-	_, err = s.db.Exec(query, tenantID, l.StartDate, l.EndDate, l.MonthlyRent, l.DepositAmount)
+	apartmentID, err := s.FindApartmentIDByNumber(l.ApartmentNumber)
+	if err != nil {
+		return err
+	}
+	// to ensure compatibility with Postgres DATE type
+	startDate := l.StartDate.Format("2006-01-02")
+	endDate := l.EndDate.Format("2006-01-02")
+
+	query := `"UPDATE Leases SET tenant_id = $1, apartment_id = $2, start_date = $3, end_date = $4,
+				monthly_rent = $5, deposit_amount = $6`
+	_, err = s.db.Exec(query, tenantID, apartmentID, startDate, endDate, l.MonthlyRent, l.DepositAmount)
 	if err != nil {
 		return err
 	}
@@ -243,7 +256,10 @@ func (s DatabaseService) PatchLease(name, field string, rawValue interface{}) er
 	if field == "tenant_name" {
 		rawValue = tenantID
 	}
-
+	// to ensure compatibility with Postgres DATE type
+	if field == "start_date" || field == "end_date" {
+		rawValue = rawValue.(time.Time).Format("2006-01-02")
+	}
 	query := fmt.Sprintf("UPDATE Leases SET %s = $1 WHERE tenant_id = $2", field)
 	if _, err := s.db.Exec(query, rawValue, tenantID); err != nil {
 		return err
@@ -261,8 +277,9 @@ func (s DatabaseService) DeleteLease(l models.Lease) error {
 
 func (s DatabaseService) FindAllLeases() ([]models.Lease, error) {
 	var leases []models.Lease
-	query := `SELECT Leases.*, Tenants.name AS TenantName FROM Leases
-				JOIN Tenants ON Leases.tenant_id = Tenants.id`
+	query := `SELECT Leases.*, Tenants.name AS TenantName, Apartments.number AS ApartmentNumber FROM Leases
+				JOIN Tenants ON Leases.tenant_id = Tenants.id
+				JOIN Apartments ON Leases.apartment_id = Apartments.id`
 	if err := s.db.Select(&leases, query); err != nil {
 		return nil, err
 	}
@@ -276,7 +293,9 @@ func (s DatabaseService) FindLeaseByName(name string) (models.Lease, error) {
 		return models.Lease{}, err
 	}
 	query := `SELECT Leases.*, Tenants.name AS TenantName FROM Leases
-				JOIN Tenants ON Leases.tenant_id = Tenants.id WHERE Leases.tenant_id = $1`
+				JOIN Tenants ON Leases.tenant_id = Tenants.id 
+				JOIN Apartments ON Leases.apartment_id = Apartments.id
+				WHERE Leases.tenant_id = $1`
 	err = s.db.Get(&lease, query, tenantID)
 	if err != nil {
 		return models.Lease{}, err
@@ -285,20 +304,14 @@ func (s DatabaseService) FindLeaseByName(name string) (models.Lease, error) {
 }
 
 /* -------------------- MISCELLANEOUS HELPER FUNCTIONS -------------------- */
-func (s DatabaseService) FindApartmentsByEndDate(endDate time.Time) ([]models.Apartment, error) {
-	var apartmentIDs []uint
-	query := `SELECT Tenant.apartment_id FROM Tenant JOIN Leases
-				ON Leases.tenant_id = Tenant.id WHERE Leases.end_date <= $1
-				AND Tenant.is_renwing = FALSE`
-	err := s.db.Select(apartmentIDs, query, endDate)
-	if err != nil {
+func (s DatabaseService) FindLeasesAfterEndDate(endDate time.Time) ([]models.Lease, error) {
+	var leases []models.Lease
+	query := `SELECT Leases.*, Tenant.name AS TenantName, Apartments.number AS ApartmentNumber	
+	 			JOIN Tenants ON Leases.tenant_id = Tenants.id  
+				JOIN Apartments ON Leases.apartment_id = Apartments.id 
+				WHERE Leases.end_date <= $1`
+	if err := s.db.Select(&leases, query, endDate); err != nil {
 		return nil, err
 	}
-	var apartments []models.Apartment
-	query = "SELECT * FROM Apartments WHERE id = ANY ($1)"
-	err = s.db.Select(apartments, query, apartmentIDs)
-	if err != nil {
-		return nil, err
-	}
-	return apartments, nil
+	return leases, nil
 }

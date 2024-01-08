@@ -5,6 +5,7 @@ import (
 	"benttreeGo/pkg/services"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -91,5 +92,28 @@ func (h LeaseHandler) LeaseByName(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
+	}
+}
+
+func (h LeaseHandler) LeasesAfterEndDate(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		vars := mux.Vars(r)
+		parsedTime, err := time.Parse("2006-01-02", vars["end_date"])
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		leases, err := h.s.FindLeasesAfterEndDate(parsedTime)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if err := json.NewEncoder(w).Encode(leases); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }

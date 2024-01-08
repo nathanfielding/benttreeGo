@@ -52,6 +52,7 @@ func main() {
 
 	r.HandleFunc("/leases/", leaseHandler.LeaseList)
 	r.HandleFunc("/leases/name/{name}", leaseHandler.LeaseByName)
+	r.HandleFunc("/leases/end_date/{end_date}", leaseHandler.LeasesAfterEndDate)
 
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
